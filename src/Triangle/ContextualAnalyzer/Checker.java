@@ -410,7 +410,7 @@ public final class Checker implements Visitor {
       reporter.reportError ("identifier \"%\" already declared",
                             ast.I.spelling, ast.position);
     idTable.openScope();
-    ast.FPS.visit(this, null);
+    ast.FPS.visit(this, null);      //saber parametros de procedimientos que estan despues
     idTable.closeScope();
     return null;
   }

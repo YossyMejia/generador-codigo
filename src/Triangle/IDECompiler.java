@@ -55,7 +55,7 @@ public class IDECompiler {
         Parser parser = new Parser(scanner, report, writer);
         
         boolean success = false;
-        
+        //checker
         rootAST = parser.parseProgram();
         if (report.numErrors == 0) {
             System.out.println("Contextual Analysis ...");

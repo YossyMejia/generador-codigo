@@ -138,20 +138,21 @@ public final class Encoder implements Visitor {
     return null;
   }
   
-    public Object visitForCommand(ForCommand ast, Object o) {
+    public Object visitForCommand(ForCommand ast, Object o) {       //Nuevo
        Frame frame = (Frame) o;
         
         return null;
     }
 
   public Object visitLetCommand(LetCommand ast, Object o) {
-   Frame frame = (Frame) o;
-   int extraSize = ((Integer) ast.D.visit(this, frame)).intValue();
-   ast.C.visit(this, new Frame(frame, extraSize));
-   if (extraSize > 0)
-     emit(Machine.POPop, 0, 0, extraSize);
-   return null;
+    Frame frame = (Frame) o;
+    int extraSize = ((Integer) ast.D.visit(this, frame)).intValue();
+    ast.C.visit(this, new Frame(frame, extraSize));
+    if (extraSize > 0)
+      emit(Machine.POPop, 0, 0, extraSize);
+    return null;
   }
+
 
   public Object visitSequentialCommand(SequentialCommand ast, Object o) {
     ast.C1.visit(this, o);
@@ -173,30 +174,54 @@ public final class Encoder implements Visitor {
     return null;
   }
   
-  public Object visitdoWhileCommand(doWhileCommand ast, Object o) {
-       return null;
+  public Object visitdoWhileCommand(doWhileCommand ast, Object o) { //Nuevo
+    Frame frame = (Frame) o;
+    int jumpAddr, loopAddr;
+    
+    ast.C.visit(this, frame);
+    
+    jumpAddr = nextInstrAddr;
+    emit(Machine.JUMPop, 0, Machine.CBr, 0);
+    loopAddr = nextInstrAddr;
+    ast.C.visit(this, frame);
+    patch(jumpAddr, nextInstrAddr);
+    ast.E.visit(this, frame);
+    emit(Machine.JUMPIFop, Machine.trueRep, Machine.CBr, loopAddr);
+    return null;
   }
 
    
-  public Object visitdoUntilCommand(doUntilCommand ast, Object o) {
-        return null;
+  public Object visitdoUntilCommand(doUntilCommand ast, Object o) { //Nuevo
+    Frame frame = (Frame) o;
+    int jumpAddr, loopAddr;
+    
+    ast.C.visit(this, frame);
+    
+    jumpAddr = nextInstrAddr;
+    emit(Machine.JUMPop, 0, Machine.CBr, 0);
+    loopAddr = nextInstrAddr;
+    ast.C.visit(this, frame);
+    patch(jumpAddr, nextInstrAddr);
+    ast.E.visit(this, frame);
+    emit(Machine.JUMPIFop, Machine.falseRep, Machine.CBr, loopAddr);
+    return null;
   }
 
   
   
-    public Object visitUntilCommand(UntilCommand ast, Object o) {
-        /*Frame frame = (Frame) o;
-        int jumpAddr, loopAddr;
+  public Object visitUntilCommand(UntilCommand ast, Object o) { //Nuevo
+    Frame frame = (Frame) o;
+    int jumpAddr, loopAddr;
 
-        jumpAddr = nextInstrAddr;
-        emit(Machine.JUMPop, 0, Machine.CBr, 0);
-        loopAddr = nextInstrAddr;
-        ast.C.visit(this, frame);
-        patch(jumpAddr, nextInstrAddr);
-        ast.E.visit(this, frame);
-        emit(Machine.JUMPIFop, Machine.trueRep, Machine.CBr, loopAddr);*/
-        return null;
-    }
+    jumpAddr = nextInstrAddr;
+    emit(Machine.JUMPop, 0, Machine.CBr, 0);
+    loopAddr = nextInstrAddr;
+    ast.C.visit(this, frame);
+    patch(jumpAddr, nextInstrAddr);
+    ast.E.visit(this, frame);
+    emit(Machine.JUMPIFop, Machine.falseRep, Machine.CBr, loopAddr);
+    return null;
+  }
 
     
     
@@ -304,13 +329,13 @@ public final class Encoder implements Visitor {
     return new Integer(0);
   }
 
-   public Object visitRepVarDeclaration(RepVarDeclaration ast, Object o) {
+   public Object visitRepVarDeclaration(RepVarDeclaration ast, Object o) {      //Nuevo
         Frame frame = (Frame) o;
         
         return null;
     }
    
-   public Object visitPriDeclaration(PriDeclaration ast, Object o) {
+   public Object visitPriDeclaration(PriDeclaration ast, Object o) {        //Nuevo
     Frame frame = (Frame) o;
         
     return null;
@@ -358,12 +383,10 @@ public final class Encoder implements Visitor {
     return new Integer(0);
   }
 
-  public Object visitRecsDeclaration(RecsDeclaration ast, Object o){
+  public Object visitRecsDeclaration(RecsDeclaration ast, Object o){        //Nuevo
    return null;
   }
 
-
-  
   public Object visitProcDeclaration(ProcDeclaration ast, Object o) {
     Frame frame = (Frame) o;
     int jumpAddr = nextInstrAddr;
@@ -388,20 +411,18 @@ public final class Encoder implements Visitor {
 
   public Object visitSequentialDeclaration(SequentialDeclaration ast, Object o) {
     Frame frame = (Frame) o;
-    /*int extraSize1, extraSize2;
+    int extraSize1, extraSize2;
 
     extraSize1 = ((Integer) ast.D1.visit(this, frame)).intValue();
     Frame frame1 = new Frame (frame, extraSize1);
     extraSize2 = ((Integer) ast.D2.visit(this, frame1)).intValue();
-    return new Integer(extraSize1 + extraSize2);*/
-    return null;
+    return new Integer(extraSize1 + extraSize2);
   }
 
-  public Object visitProcsDeclaration(ProcsDeclaration ast, Object o) {
+  public Object visitProcsDeclaration(ProcsDeclaration ast, Object o) {     //Nuevo
     Frame frame = (Frame) o;
     return null;
   }
-  
   
   public Object visitTypeDeclaration(TypeDeclaration ast, Object o) {
     // just to ensure the type's representation is decided
@@ -425,7 +446,7 @@ public final class Encoder implements Visitor {
     return new Integer(extraSize);
   }
   
-  public Object visitVarExpDeclaration(VarExpDeclaration ast, Object o) {
+  public Object visitVarExpDeclaration(VarExpDeclaration ast, Object o) {       //Nuevo
     Frame frame = (Frame) o;
         
     return null;
@@ -815,14 +836,15 @@ public final class Encoder implements Visitor {
   // Decides run-time representation of a standard constant.
   private final void elaborateStdConst (Declaration constDeclaration,
 					int value) {
-      /*
+
     if (constDeclaration instanceof ConstDeclaration) {
       ConstDeclaration decl = (ConstDeclaration) constDeclaration;
       int typeSize = ((Integer) decl.E.type.visit(this, null)).intValue();
       decl.entity = new KnownValue(typeSize, value);
       writeTableDetails(constDeclaration);
-    }*/
+    }
   }
+
 
   // Decides run-time representation of a standard routine.
   private final void elaborateStdPrimRoutine (Declaration routineDeclaration,
@@ -843,14 +865,14 @@ public final class Encoder implements Visitor {
     writeTableDetails(routineDeclaration);
   }
 
-  private final void elaborateStdEnvironment() {
+ private final void elaborateStdEnvironment() {
     tableDetailsReqd = false;
-    //elaborateStdConst(StdEnvironment.falseDecl, Machine.falseRep);
-   //elaborateStdConst(StdEnvironment.trueDecl, Machine.trueRep);
+    elaborateStdConst(StdEnvironment.falseDecl, Machine.falseRep);
+    elaborateStdConst(StdEnvironment.trueDecl, Machine.trueRep);
     elaborateStdPrimRoutine(StdEnvironment.notDecl, Machine.notDisplacement);
     elaborateStdPrimRoutine(StdEnvironment.andDecl, Machine.andDisplacement);
     elaborateStdPrimRoutine(StdEnvironment.orDecl, Machine.orDisplacement);
-    //elaborateStdConst(StdEnvironment.maxintDecl, Machine.maxintRep);
+    elaborateStdConst(StdEnvironment.maxintDecl, Machine.maxintRep);
     elaborateStdPrimRoutine(StdEnvironment.addDecl, Machine.addDisplacement);
     elaborateStdPrimRoutine(StdEnvironment.subtractDecl, Machine.subDisplacement);
     elaborateStdPrimRoutine(StdEnvironment.multiplyDecl, Machine.multDisplacement);
@@ -860,16 +882,16 @@ public final class Encoder implements Visitor {
     elaborateStdPrimRoutine(StdEnvironment.notgreaterDecl, Machine.leDisplacement);
     elaborateStdPrimRoutine(StdEnvironment.greaterDecl, Machine.gtDisplacement);
     elaborateStdPrimRoutine(StdEnvironment.notlessDecl, Machine.geDisplacement);
-    //elaborateStdPrimRoutine(StdEnvironment.chrDecl, Machine.idDisplacement);
-    //elaborateStdPrimRoutine(StdEnvironment.ordDecl, Machine.idDisplacement);
-    //elaborateStdPrimRoutine(StdEnvironment.eolDecl, Machine.eolDisplacement);
-    //elaborateStdPrimRoutine(StdEnvironment.eofDecl, Machine.eofDisplacement);
-    //elaborateStdPrimRoutine(StdEnvironment.getDecl, Machine.getDisplacement);
-    //elaborateStdPrimRoutine(StdEnvironment.putDecl, Machine.putDisplacement);
-    //elaborateStdPrimRoutine(StdEnvironment.getintDecl, Machine.getintDisplacement);
-    //elaborateStdPrimRoutine(StdEnvironment.putintDecl, Machine.putintDisplacement);
-    //elaborateStdPrimRoutine(StdEnvironment.geteolDecl, Machine.geteolDisplacement);
-    //elaborateStdPrimRoutine(StdEnvironment.puteolDecl, Machine.puteolDisplacement);
+    elaborateStdPrimRoutine(StdEnvironment.chrDecl, Machine.idDisplacement);
+    elaborateStdPrimRoutine(StdEnvironment.ordDecl, Machine.idDisplacement);
+    elaborateStdPrimRoutine(StdEnvironment.eolDecl, Machine.eolDisplacement);
+    elaborateStdPrimRoutine(StdEnvironment.eofDecl, Machine.eofDisplacement);
+    elaborateStdPrimRoutine(StdEnvironment.getDecl, Machine.getDisplacement);
+    elaborateStdPrimRoutine(StdEnvironment.putDecl, Machine.putDisplacement);
+    elaborateStdPrimRoutine(StdEnvironment.getintDecl, Machine.getintDisplacement);
+    elaborateStdPrimRoutine(StdEnvironment.putintDecl, Machine.putintDisplacement);
+    elaborateStdPrimRoutine(StdEnvironment.geteolDecl, Machine.geteolDisplacement);
+    elaborateStdPrimRoutine(StdEnvironment.puteolDecl, Machine.puteolDisplacement);
     elaborateStdEqRoutine(StdEnvironment.equalDecl, Machine.eqDisplacement);
     elaborateStdEqRoutine(StdEnvironment.unequalDecl, Machine.neDisplacement);
   }
